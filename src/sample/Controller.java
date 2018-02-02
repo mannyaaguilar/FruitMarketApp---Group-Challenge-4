@@ -5,178 +5,224 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
 import javafx.scene.text.Text;
-import sample.Model.Player;
-
 import java.net.URL;
 import java.text.DecimalFormat;
-import java.util.Random;
 import java.util.ResourceBundle;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class Controller implements Initializable{
 
+    //trader info fields
     @FXML
-    public Button btnbuyApples;
-
+    public Text textApples;
     @FXML
-    public Button btnbuyOranges;
-
+    public Text textOranges;
     @FXML
-    public Button btnbuyBananas;
-
+    public Text textBananas;
     @FXML
-    public Button btnbuyGrapes;
-
+    public Text textGrapes;
     @FXML
-    public Text boxApples;
-
+    public Text textAvgApples;
     @FXML
-    public Text boxOranges;
-
+    public Text textAvgOranges;
     @FXML
-    public Text boxBananas;
-
+    public Text textAvgBananas;
     @FXML
-    public Text boxGrapes;
-
+    public Text textAvgGrapes;
     @FXML
-    public Text boxTimer;
+    public Text textCash;
 
+    //market info fields
     @FXML
-    public Text priceText;
-
+    public Text priceApples;
+    @FXML
+    public Text priceOranges;
+    @FXML
+    public Text priceBananas;
+    @FXML
+    public Text priceGrapes;
     @FXML
     public Text feedbackText;
 
-    @FXML
-    public Text playerCash;
+    //class fields
+    Player trader;
+    Market market;
 
-    @FXML
-    public Button btnSellApples;
+    public double startingCash = 100;
+    public int startingInv = 0;
 
-    @FXML
-    public Button btnSellOranges;
+    //Average fields
+    public int countApple;
+    public double totalApplePrice;
+    public double avgApples;
+    public int countOranges;
+    public double totalOrangesPrice;
+    public double avgOranges;
+    public int countBananas;
+    public double totalBananasPrice;
+    public double avgBananas;
+    public int countGrapes;
+    public double totalGrapesPrice;
+    public double avgGrapes;
 
-    @FXML
-    public Button btnSellBananas;
-
-    @FXML
-    public Button btnSellGrapes;
-
-    public int countApples = 0;
-    public int countOranges = 0;
-    public int countBananas = 0;
-    public int countGrapes = 0;
-
-    public int countTime = 0;
-    public double price = 0.0;
-    public double MIN = .01;
-    public double MAX = 9.99;
-
-
+    DecimalFormat money = new DecimalFormat("0.00");
+    Timer tickTock = new Timer();
 
     @Override
-    public void initialize(URL location, ResourceBundle resources){
-
-
-        updateBoxes();
-        setUpClock();
+    public void initialize(URL location, ResourceBundle resources) {
+        trader = new Player(startingCash,startingInv,startingInv,startingInv,startingInv);
+        market = new Market();
+        setTextCash();
+        setPrices();
+        tickTock.schedule(tickTockTask, 5000L,5000L);
     }
 
-    public void setUpClock() {
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                countTime++;
-                String stringTime = String.valueOf(countTime);
-                boxTimer.setText(stringTime);
+    TimerTask tickTockTask = new TimerTask() {
+        @Override
+        public void run() {
+            chngPrices();
+        }
+    };
 
-
-            }
-        };
-
-        Player player = new Player(100, 0, 0, 0, 0);
-        Timer moneyTimer = new Timer();
-        moneyTimer.schedule(task, 1000L, 1000L);
-
-        DecimalFormat df = new DecimalFormat("0.00");
-        player.setCash(Double.parseDouble(df.format(player.getCash())));
-        playerCash.setText("Player Cash: $" + String.valueOf(player.getCash()));
-
-        Random priceAdusterApples = new Random(10 );
-        double randomPriceApples = priceAdusterApples.nextDouble();
-        priceText.setText(String.valueOf(randomPriceApples));
-
-
-
+    public void setTextCash() {
+        textCash.setText(money.format(trader.cash));
     }
 
-    public void updateBoxes(){
-        boxApples.setText("Apples: " + countApples);
-        boxOranges.setText("Oranges: " + countOranges);
-        boxBananas.setText("Bananas: " + countBananas);
-        boxGrapes.setText("Grapes:" + countGrapes);
-
+    public void setPrices(){
+        priceApples.setText("$"+ money.format(market.priceApples));
+        priceOranges.setText("$"+ money.format(market.priceOranges));
+        priceBananas.setText("$"+ money.format(market.priceBananas));
+        priceGrapes.setText("$"+ money.format(market.priceGrapes));
     }
-
+    public void chngPrices () {
+        market.updateAllPrices();
+        setPrices();
+    }
     public void buyApples(ActionEvent actionEvent){
-        countApples++;
-        updateBoxes();
-        feedbackText.setText(countApples + " " + "APPLE(S) PURCHASED");
+        trader.invApples++;
+        if(trader.cash > market.priceApples)
+        {trader.cash -= market.priceApples;
+        textApples.setText(String.valueOf(trader.invApples));
+        textCash.setText("$" + money.format(trader.cash));
+        feedbackText.setText("Apple Purchased for $"+money.format(market.priceApples));
+        //Average Calc:
+        countApple++;
+        totalApplePrice += market.priceApples;
+        avgApples = totalApplePrice/countApple;
+        textAvgApples.setText("$" + money.format(avgApples));
+    }else{feedbackText.setText("You don't have enough money to buy more fruit!");}}
+    public void sellApples(ActionEvent actionEvent){
+        if(trader.invApples > 0){
+            trader.invApples--;
+            trader.cash += market.priceApples;
+            textApples.setText(String.valueOf(trader.invApples));
+            textCash.setText("$" + money.format(trader.cash));
+            feedbackText.setText("Apple sold for $" + money.format(market.priceApples));
+            //Average reset:
+            if (trader.invApples == 0){
+                countApple=0;
+                totalApplePrice=0.0;
+                avgApples = 0.0;
+                textAvgApples.setText("");
+            }
+        } else {
+            feedbackText.setText("You don't have enough apples to sell on the market.");
+        }
     }
     public void buyOranges(ActionEvent actionEvent){
+        trader.invOranges++;
+        if(trader.cash >= market.priceOranges){
+        trader.cash -= market.priceOranges;
+        textOranges.setText(String.valueOf(trader.invOranges));
+        textCash.setText("$" + money.format(trader.cash));
+        feedbackText.setText("Orange Purchased for $"+money.format(market.priceOranges));
+        //Average Calc:
         countOranges++;
-        updateBoxes();
-        feedbackText.setText(countOranges + " " + "ORANGE(S) PURCHASED");
-    }
-
+        totalOrangesPrice += market.priceOranges;
+        avgOranges = totalOrangesPrice/countOranges;
+        textAvgOranges.setText("$" + money.format(avgOranges));
+    }else{feedbackText.setText("You don't have enough money to buy more fruit!");}}
     public void buyBananas(ActionEvent actionEvent){
+        trader.invBananas++;
+        if(trader.cash > market.priceBananas){
+        trader.cash -= market.priceBananas;
+        textBananas.setText(String.valueOf(trader.invBananas));
+        textCash.setText("$" + money.format(trader.cash));
+        feedbackText.setText("Banana Purchased for $"+money.format(market.priceBananas));
+        //Average Calc:
         countBananas++;
-        updateBoxes();
-        feedbackText.setText(countBananas + " " + "BANANA(S) PURCHASED");
-    }
+        totalBananasPrice += market.priceBananas;
+        avgBananas = totalBananasPrice/countBananas;
+        textAvgBananas.setText("$" + money.format(avgBananas));
+    }else{feedbackText.setText("You don't have enough money to buy more fruit!");}}
     public void buyGrapes(ActionEvent actionEvent){
+        trader.invGrapes++;
+        if(trader.cash > market.priceGrapes){
+        trader.cash -= market.priceGrapes;
+        textGrapes.setText(String.valueOf(trader.invGrapes));
+        textCash.setText("$" + money.format(trader.cash));
+        feedbackText.setText("Banana Purchased for $"+money.format(market.priceGrapes));
+        //Average Calc:
         countGrapes++;
-        updateBoxes();
-        feedbackText.setText(countGrapes + " " + "GRAPE(S) PURCHASED");
-    }
+        totalGrapesPrice += market.priceGrapes;
+        avgGrapes = totalGrapesPrice/countGrapes;
+        textAvgGrapes.setText("$" + money.format(avgGrapes));
 
-    public void sellApples(ActionEvent actionEvent){
-        if(countApples > 0){
-            countApples--;
-            updateBoxes();
-            feedbackText.setText("SALE SUCCESSFUL");
-        } else {
-            feedbackText.setText("ERROR. CAN'T SELL MORE THAN YOU HAVE." );
-        }
+    }else{feedbackText.setText("You don't have enough money to buy more fruit!");}}
 
-    }
     public void sellOranges(ActionEvent actionEvent){
-        if(countOranges > 0){
-            countOranges--;
-            updateBoxes();
-            feedbackText.setText("SALE SUCCESSFUL");
+        if(trader.invOranges > 0 ){
+            trader.invOranges--;
+            trader.cash += market.priceOranges;
+            textOranges.setText(String.valueOf(trader.invOranges));
+            textCash.setText("$" + money.format(trader.cash));
+            feedbackText.setText("Orange sold for $" + money.format(market.priceOranges));
+            //Average reset:
+            if (trader.invOranges == 0){
+                countOranges=0;
+                totalOrangesPrice=0.0;
+                avgOranges = 0.0;
+                textAvgOranges.setText("");
+            }
         } else {
-            feedbackText.setText("ERROR. CAN'T SELL MORE THAN YOU HAVE." );
+            feedbackText.setText("You don't have enough oranges to sell on the market.");
         }
     }
     public void sellBananas(ActionEvent actionEvent){
-        if(countBananas > 0){
-            countBananas--;
-            updateBoxes();
-            feedbackText.setText("SALE SUCCESSFUL");
+        if(trader.invBananas > 0){
+            trader.invBananas--;
+            trader.cash += market.priceBananas;
+            textBananas.setText(String.valueOf(trader.invBananas));
+            textCash.setText("$" + money.format(trader.cash));
+            feedbackText.setText("Banana sold for $" + money.format(market.priceBananas));
+            //Average reset:
+            if (trader.invBananas == 0){
+                countBananas=0;
+                totalBananasPrice=0.0;
+                avgBananas = 0.0;
+                textAvgBananas.setText("");
+            }
         } else {
-            feedbackText.setText("ERROR. CAN'T SELL MORE THAN YOU HAVE." );
+            feedbackText.setText("You don't have enough bananas to sell on the market.");
         }
     }
     public void sellGrapes(ActionEvent actionEvent){
-        if(countGrapes > 0){
-            countGrapes--;
-            updateBoxes();
-            feedbackText.setText("SALE SUCCESSFUL");
+        if(trader.invGrapes > 0){
+            trader.invGrapes--;
+            trader.cash += market.priceGrapes;
+            textGrapes.setText(String.valueOf(trader.invGrapes));
+            textCash.setText("$" + money.format(trader.cash));
+            feedbackText.setText("Grapes sold for $" + money.format(market.priceGrapes));
+            //Average reset:
+            if (trader.invGrapes == 0){
+                countGrapes=0;
+                totalGrapesPrice=0.0;
+                avgGrapes = 0.0;
+                textAvgGrapes.setText("");
+            }
         } else {
-            feedbackText.setText("ERROR. CAN'T SELL MORE THAN YOU HAVE." );
+            feedbackText.setText("You don't have enough grapes to sell on the market.");
         }
     }
 }
